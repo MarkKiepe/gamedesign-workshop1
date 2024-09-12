@@ -6,56 +6,89 @@ public class FPSCharacterController : MonoBehaviour
 {
     private Rigidbody _player;
 
-    public float movementSpeed = 10f;
-    public float jumpingPower = 5f;
-    public float jumpingCooldown = 2f;
+    [SerializeField] private float _speed = 5f;
+    [SerializeField] private float _jumpForce = 5f;
     
-    private Vector3 _movement = Vector3.zero;
-    private Quaternion _rotation = Quaternion.identity;
+    private Vector2 _movementInput;
     
-    private bool _jumpCooldown = false;
+    private bool _isJumping;
     
     private void Start()
     {
         _player = GetComponent<Rigidbody>();
-        _rotation = _player.rotation;
     }
-
+    
+    private void OnMove(InputValue value)
+    {
+        _movementInput = value.Get<Vector2>();
+    }
+    
+    private void OnJump(InputValue value)
+    {
+        _isJumping = value.isPressed;
+    }
+    
     private void FixedUpdate()
     {
-        HandleMovement();
-    }
-
-    private void OnMove(InputValue movementValue)
-    {
-        var input = movementValue.Get<Vector2>();
-        _movement = new Vector3(input.x, 0, input.y)  * movementSpeed;
+        var movement = new Vector3(_movementInput.x, 0, _movementInput.y) * _speed;
+        movement = transform.TransformDirection(movement);
+        _player.velocity = new Vector3(movement.x, _player.velocity.y, movement.z);
         
-        if (_movement != Vector3.zero)
+        if (_isJumping)
         {
-            _rotation = Quaternion.LookRotation(_movement);
+            _player.AddForce(Vector3.up * _jumpForce, ForceMode.Impulse);
+            _isJumping = false;
         }
     }
     
-    private void OnJump()
+    private void OnEnable()
     {
-        if (_jumpCooldown) return;
-        
-        _jumpCooldown = true;
-        
-        Invoke(nameof(ResetJumpCooldown), jumpingCooldown);
-        
-        _player.AddForce(Vector3.up * jumpingPower, ForceMode.Impulse);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
     
-    private void ResetJumpCooldown()
+    private void OnDisable()
     {
-        _jumpCooldown = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
     
-    private void HandleMovement()
+    private void Update()
     {
-        _player.MovePosition(_player.position + _movement * Time.fixedDeltaTime);
-        _player.MoveRotation(Quaternion.Slerp(_player.rotation, _rotation, Time.fixedDeltaTime * movementSpeed));
+        if (Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+    }
+    
+    private void OnCollisionEnter(Collision other)
+    {
+        if (other.gameObject.CompareTag("Ground"))
+        {
+            _isJumping = false;
+        }
+    }
+    
+    private void OnCollisionExit(Collision other)
+    {
+        if (other.gameObject.CompareTag("Ground"))
+        {
+            _isJumping = true;
+        }
+    }
+    
+    private void OnCollisionStay(Collision other)
+    {
+        if (other.gameObject.CompareTag("Ground"))
+        {
+            _isJumping = false;
+        }
     }
 }
