@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class CharacterController : MonoBehaviour
+public class FPSCharacterController : MonoBehaviour
 {
     private Rigidbody _player;
 
